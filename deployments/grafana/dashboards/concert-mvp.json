@@ -1,0 +1,57 @@
+{
+  "title": "Concert Booking MVP",
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "5s",
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "HTTP RPS",
+      "gridPos": {"x": 0, "y": 0, "w": 8, "h": 8},
+      "targets": [
+        {"expr": "sum(rate(http_requests_total[1m]))", "refId": "A"}
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Reservation Success Rate",
+      "gridPos": {"x": 8, "y": 0, "w": 8, "h": 8},
+      "targets": [
+        {"expr": "sum(rate(reservation_total{result=\"success\"}[1m])) / clamp_min(sum(rate(reservation_total[1m])), 1)", "refId": "A"}
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Failed Reservation",
+      "gridPos": {"x": 16, "y": 0, "w": 8, "h": 8},
+      "targets": [
+        {"expr": "rate(failed_reservation_total[1m])", "refId": "A"}
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Kafka Lag",
+      "gridPos": {"x": 0, "y": 8, "w": 8, "h": 8},
+      "targets": [
+        {"expr": "kafka_consumer_lag", "refId": "A"}
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Redis Memory (bytes)",
+      "gridPos": {"x": 8, "y": 8, "w": 8, "h": 8},
+      "targets": [
+        {"expr": "redis_memory_bytes", "refId": "A"}
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "DB Open Connections",
+      "gridPos": {"x": 16, "y": 8, "w": 8, "h": 8},
+      "targets": [
+        {"expr": "db_open_connections", "refId": "A"}
+      ]
+    }
+  ]
+}

@@ -18,6 +18,10 @@ func (c *Consumer) ReadMessage(ctx context.Context) (kafka.Message, error) {
 	return c.reader.ReadMessage(ctx)
 }
 
+func (c *Consumer) Stats() kafka.ReaderStats {
+	return c.reader.Stats()
+}
+
 func (c *Consumer) Close() error {
 	return c.reader.Close()
 }

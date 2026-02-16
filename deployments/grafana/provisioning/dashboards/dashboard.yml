@@ -1,0 +1,11 @@
+apiVersion: 1
+
+providers:
+  - name: concert-mvp
+    orgId: 1
+    folder: Concert MVP
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /var/lib/grafana/dashboards

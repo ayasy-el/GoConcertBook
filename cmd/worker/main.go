@@ -4,13 +4,16 @@ import (
 	"context"
 	"encoding/json"
 	"log"
+	"net/http"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"concert-booking/internal/app/config"
 	"concert-booking/internal/domain/entity"
 	kafkainfra "concert-booking/internal/infrastructure/kafka"
 	"concert-booking/internal/infrastructure/postgres"
+	"concert-booking/internal/observability/metrics"
 )
 
 func main() {
@@ -28,10 +31,34 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
+	metricsStop := make(chan struct{})
+	go func() {
+		t := time.NewTicker(5 * time.Second)
+		defer t.Stop()
+		for {
+			select {
+			case <-metricsStop:
+				return
+			case <-t.C:
+				stats := consumer.Stats()
+				metrics.SetKafkaLag(stats.Lag)
+			}
+		}
+	}()
+
+	httpSrv := &http.Server{Addr: ":9091", Handler: http.HandlerFunc(metrics.Handler)}
+	go func() {
+		if err := httpSrv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Printf("worker metrics server error: %v", err)
+		}
+	}()
+
 	for {
 		msg, err := consumer.ReadMessage(ctx)
 		if err != nil {
 			if ctx.Err() != nil {
+				close(metricsStop)
+				_ = httpSrv.Shutdown(context.Background())
 				log.Println("worker shutting down")
 				return
 			}

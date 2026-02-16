@@ -16,6 +16,7 @@ import (
 	"concert-booking/internal/interface/http/handler"
 	"concert-booking/internal/interface/http/middleware"
 	"concert-booking/internal/interface/http/router"
+	"concert-booking/internal/observability/metrics"
 	"concert-booking/internal/usecase"
 )
 
@@ -48,6 +49,10 @@ func NewHTTPServer(cfg config.Config) *http.Server {
 
 		eventUsecase = usecase.NewEventUsecase(eventRepo, categoryRepo, stock, time.Now, newID)
 		reservationUsecase = usecase.NewReservationUsecase(categoryRepo, reservationRepo, bookingRepo, stock, producer, time.Now, newID, cfg.ReservationTTL, cfg.QueueThreshold, cfg.WorkerPoolSize, false)
+
+		collectorStop := make(chan struct{})
+		go metrics.StartInfraCollectors(db, stock.Client(), 5*time.Second, collectorStop)
+		cleanup = append(cleanup, func() { close(collectorStop) })
 	} else {
 		eventRepo := memory.NewEventRepository()
 		categoryRepo := memory.NewTicketCategoryRepository()

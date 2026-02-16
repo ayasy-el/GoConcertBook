@@ -10,6 +10,7 @@ import (
 
 	"concert-booking/internal/domain/service"
 	"concert-booking/internal/interface/http/dto"
+	"concert-booking/internal/observability/metrics"
 	"concert-booking/internal/usecase"
 )
 
@@ -30,6 +31,7 @@ func (h *ReservationHandler) Reserve(w http.ResponseWriter, r *http.Request) {
 	userID := strings.TrimSpace(r.Header.Get("X-User-ID"))
 	reservation, err := h.usecase.Reserve(r.Context(), userID, req.EventID, req.Category, req.Qty)
 	if err != nil {
+		metrics.IncReservationFailed()
 		status := http.StatusInternalServerError
 		switch {
 		case errors.Is(err, usecase.ErrInvalidInput):
@@ -44,6 +46,7 @@ func (h *ReservationHandler) Reserve(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), status)
 		return
 	}
+	metrics.IncReservationSuccess()
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	_ = json.NewEncoder(w).Encode(reservation)

@@ -21,6 +21,10 @@ func NewStockService(addr, password string) *StockService {
 	return &StockService{client: goredis.NewClient(&goredis.Options{Addr: addr, Password: password})}
 }
 
+func (s *StockService) Client() *goredis.Client {
+	return s.client
+}
+
 func (s *StockService) Ping(ctx context.Context) error {
 	return s.client.Ping(ctx).Err()
 }
