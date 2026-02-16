@@ -22,6 +22,22 @@ func NewReservationHandler(usecase *usecase.ReservationUsecase) *ReservationHand
 	return &ReservationHandler{usecase: usecase}
 }
 
+// Reserve godoc
+// @Summary Reserve ticket
+// @Tags reservation
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param request body dto.ReserveRequest true "Reserve payload"
+// @Success 201 {object} entity.Reservation
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 401 {object} dto.ErrorResponse
+// @Failure 403 {object} dto.ErrorResponse
+// @Failure 404 {object} dto.ErrorResponse
+// @Failure 409 {object} dto.ErrorResponse
+// @Failure 429 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
+// @Router /reserve [post]
 func (h *ReservationHandler) Reserve(w http.ResponseWriter, r *http.Request) {
 	var req dto.ReserveRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -52,6 +68,21 @@ func (h *ReservationHandler) Reserve(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(reservation)
 }
 
+// Confirm godoc
+// @Summary Confirm reservation (payment simulation)
+// @Tags reservation
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param request body dto.ConfirmRequest true "Confirm payload"
+// @Success 200 {object} entity.Booking
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 401 {object} dto.ErrorResponse
+// @Failure 403 {object} dto.ErrorResponse
+// @Failure 402 {object} dto.ErrorResponse
+// @Failure 404 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
+// @Router /confirm [post]
 func (h *ReservationHandler) Confirm(w http.ResponseWriter, r *http.Request) {
 	var req dto.ConfirmRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {

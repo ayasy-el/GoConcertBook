@@ -6,6 +6,7 @@ import (
 	"concert-booking/internal/interface/http/handler"
 	"concert-booking/internal/interface/http/middleware"
 	"concert-booking/internal/observability/metrics"
+	httpSwagger "github.com/swaggo/http-swagger"
 )
 
 type Dependencies struct {
@@ -21,6 +22,9 @@ func New(dep Dependencies) http.Handler {
 
 	mux.HandleFunc("GET /health", dep.HealthHandler.Handle)
 	mux.HandleFunc("GET /metrics", metrics.Handler)
+	mux.Handle("GET /swagger/", httpSwagger.Handler(
+		httpSwagger.URL("/swagger/doc.json"),
+	))
 	mux.Handle("POST /events", dep.RateLimiter.Limit(dep.Auth.RequireRole("admin", http.HandlerFunc(dep.EventHandler.CreateEvent))))
 	mux.Handle("POST /events/{id}/ticket-category", dep.RateLimiter.Limit(dep.Auth.RequireRole("admin", http.HandlerFunc(dep.EventHandler.CreateCategory))))
 	mux.Handle("GET /events/{id}/availability", dep.RateLimiter.Limit(http.HandlerFunc(dep.EventHandler.Availability)))

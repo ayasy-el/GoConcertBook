@@ -9,10 +9,18 @@ import (
 	"syscall"
 	"time"
 
+	_ "concert-booking/docs/swagger"
 	"concert-booking/internal/app/config"
 	"concert-booking/internal/app/server"
 )
 
+// @title Concert Booking MVP API
+// @version 1.0
+// @description High-concurrency concert booking API with Redis/Kafka/Postgres architecture.
+// @BasePath /
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
 func main() {
 	cfg := config.Load()
 

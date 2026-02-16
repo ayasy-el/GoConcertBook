@@ -1,0 +1,337 @@
+basePath: /
+definitions:
+  concert-booking_internal_domain_entity.Booking:
+    properties:
+      createdAt:
+        type: string
+      id:
+        type: string
+      paymentStatus:
+        type: string
+      reservationID:
+        type: string
+    type: object
+  concert-booking_internal_domain_entity.Event:
+    properties:
+      createdAt:
+        type: string
+      date:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+    type: object
+  concert-booking_internal_domain_entity.Reservation:
+    properties:
+      category:
+        type: string
+      createdAt:
+        type: string
+      eventID:
+        type: string
+      expiredAt:
+        type: string
+      id:
+        type: string
+      qty:
+        type: integer
+      status:
+        type: string
+      userID:
+        type: string
+    type: object
+  concert-booking_internal_domain_entity.TicketCategory:
+    properties:
+      eventID:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      price:
+        format: int64
+        type: integer
+      totalStock:
+        type: integer
+    type: object
+  concert-booking_internal_interface_http_dto.ConfirmRequest:
+    properties:
+      payment_ok:
+        type: boolean
+      reservation_id:
+        type: string
+    type: object
+  concert-booking_internal_interface_http_dto.CreateCategoryRequest:
+    properties:
+      name:
+        type: string
+      price:
+        type: integer
+      total_stock:
+        type: integer
+    type: object
+  concert-booking_internal_interface_http_dto.CreateEventRequest:
+    properties:
+      date:
+        type: string
+      name:
+        type: string
+    type: object
+  concert-booking_internal_interface_http_dto.ErrorResponse:
+    properties:
+      message:
+        type: string
+    type: object
+  concert-booking_internal_interface_http_dto.ReserveRequest:
+    properties:
+      category:
+        type: string
+      event_id:
+        type: string
+      qty:
+        type: integer
+    type: object
+info:
+  contact: {}
+  description: High-concurrency concert booking API with Redis/Kafka/Postgres architecture.
+  title: Concert Booking MVP API
+  version: "1.0"
+paths:
+  /confirm:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Confirm payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/concert-booking_internal_interface_http_dto.ConfirmRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/concert-booking_internal_domain_entity.Booking'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/concert-booking_internal_interface_http_dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/concert-booking_internal_interface_http_dto.ErrorResponse'
+        "402":
+          description: Payment Required
+          schema:
+            $ref: '#/definitions/concert-booking_internal_interface_http_dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/concert-booking_internal_interface_http_dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/concert-booking_internal_interface_http_dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/concert-booking_internal_interface_http_dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Confirm reservation (payment simulation)
+      tags:
+      - reservation
+  /events:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Create event payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/concert-booking_internal_interface_http_dto.CreateEventRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/concert-booking_internal_domain_entity.Event'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/concert-booking_internal_interface_http_dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/concert-booking_internal_interface_http_dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/concert-booking_internal_interface_http_dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/concert-booking_internal_interface_http_dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create event
+      tags:
+      - events
+  /events/{id}/availability:
+    get:
+      parameters:
+      - description: Event ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: integer
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/concert-booking_internal_interface_http_dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/concert-booking_internal_interface_http_dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/concert-booking_internal_interface_http_dto.ErrorResponse'
+      summary: Get realtime ticket availability
+      tags:
+      - events
+  /events/{id}/ticket-category:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Event ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Create category payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/concert-booking_internal_interface_http_dto.CreateCategoryRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/concert-booking_internal_domain_entity.TicketCategory'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/concert-booking_internal_interface_http_dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/concert-booking_internal_interface_http_dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/concert-booking_internal_interface_http_dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/concert-booking_internal_interface_http_dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/concert-booking_internal_interface_http_dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create ticket category
+      tags:
+      - events
+  /health:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Health check
+      tags:
+      - system
+  /reserve:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Reserve payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/concert-booking_internal_interface_http_dto.ReserveRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/concert-booking_internal_domain_entity.Reservation'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/concert-booking_internal_interface_http_dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/concert-booking_internal_interface_http_dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/concert-booking_internal_interface_http_dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/concert-booking_internal_interface_http_dto.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/concert-booking_internal_interface_http_dto.ErrorResponse'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/concert-booking_internal_interface_http_dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/concert-booking_internal_interface_http_dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Reserve ticket
+      tags:
+      - reservation
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
