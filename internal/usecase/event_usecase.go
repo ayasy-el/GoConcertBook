@@ -1,12 +1,14 @@
 package usecase
 
 import (
+	"context"
 	"errors"
 	"strings"
 	"time"
 
 	"concert-booking/internal/domain/entity"
 	"concert-booking/internal/domain/repository"
+	"concert-booking/internal/domain/service"
 )
 
 var (
@@ -15,14 +17,15 @@ var (
 )
 
 type EventUsecase struct {
-	events    repository.EventRepository
+	events     repository.EventRepository
 	categories repository.TicketCategoryRepository
-	now       func() time.Time
-	newID     func() string
+	stock      service.StockService
+	now        func() time.Time
+	newID      func() string
 }
 
-func NewEventUsecase(events repository.EventRepository, categories repository.TicketCategoryRepository, now func() time.Time, newID func() string) *EventUsecase {
-	return &EventUsecase{events: events, categories: categories, now: now, newID: newID}
+func NewEventUsecase(events repository.EventRepository, categories repository.TicketCategoryRepository, stock service.StockService, now func() time.Time, newID func() string) *EventUsecase {
+	return &EventUsecase{events: events, categories: categories, stock: stock, now: now, newID: newID}
 }
 
 func (u *EventUsecase) CreateEvent(name string, date time.Time) (entity.Event, error) {
@@ -56,6 +59,9 @@ func (u *EventUsecase) CreateCategory(eventID, name string, totalStock int, pric
 		Price:      price,
 	}
 	if err := u.categories.Create(c); err != nil {
+		return entity.TicketCategory{}, err
+	}
+	if err := u.stock.InitStock(context.Background(), c.EventID, c.Name, c.TotalStock); err != nil {
 		return entity.TicketCategory{}, err
 	}
 	return c, nil

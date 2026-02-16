@@ -10,7 +10,8 @@ import (
 func TestEventUsecaseAvailability(t *testing.T) {
 	events := memory.NewEventRepository()
 	categories := memory.NewTicketCategoryRepository()
-	u := NewEventUsecase(events, categories, func() time.Time { return time.Unix(1000, 0) }, func() string { return "id-1" })
+	stock := memory.NewStockService()
+	u := NewEventUsecase(events, categories, stock, func() time.Time { return time.Unix(1000, 0) }, func() string { return "id-1" })
 
 	e, err := u.CreateEvent("Coldplay", time.Now())
 	if err != nil {

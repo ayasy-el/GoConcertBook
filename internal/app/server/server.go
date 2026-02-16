@@ -17,13 +17,20 @@ import (
 func NewHTTPServer(cfg config.Config) *http.Server {
 	eventRepo := memory.NewEventRepository()
 	categoryRepo := memory.NewTicketCategoryRepository()
-	eventUsecase := usecase.NewEventUsecase(eventRepo, categoryRepo, time.Now, newID)
+	reservationRepo := memory.NewReservationRepository()
+	bookingRepo := memory.NewBookingRepository()
+	stock := memory.NewStockService()
+	producer := memory.NewEventProducer()
+
+	eventUsecase := usecase.NewEventUsecase(eventRepo, categoryRepo, stock, time.Now, newID)
+	reservationUsecase := usecase.NewReservationUsecase(categoryRepo, reservationRepo, bookingRepo, stock, producer, time.Now, newID, cfg.ReservationTTL, cfg.QueueThreshold, cfg.WorkerPoolSize)
 
 	h := router.New(router.Dependencies{
-		HealthHandler: handler.NewHealthHandler(),
-		EventHandler:  handler.NewEventHandler(eventUsecase),
-		Auth:          middleware.NewAuthMiddleware(cfg.JWTSecret),
-		RateLimiter:   middleware.NewRateLimiter(cfg.RateLimitPerMin, time.Minute),
+		HealthHandler:      handler.NewHealthHandler(),
+		EventHandler:       handler.NewEventHandler(eventUsecase),
+		ReservationHandler: handler.NewReservationHandler(reservationUsecase),
+		Auth:               middleware.NewAuthMiddleware(cfg.JWTSecret),
+		RateLimiter:        middleware.NewRateLimiter(cfg.RateLimitPerMin, time.Minute),
 	})
 
 	return &http.Server{
