@@ -27,9 +27,10 @@ type ReservationUsecase struct {
 	queueThreshold  int64
 	waitingRequests atomic.Int64
 	gate            chan struct{}
+	persistSync     bool
 }
 
-func NewReservationUsecase(categories repository.TicketCategoryRepository, reservations repository.ReservationRepository, bookings repository.BookingRepository, stock service.StockService, producer service.EventProducer, now func() time.Time, newID func() string, ttl time.Duration, queueThreshold, workerPoolSize int) *ReservationUsecase {
+func NewReservationUsecase(categories repository.TicketCategoryRepository, reservations repository.ReservationRepository, bookings repository.BookingRepository, stock service.StockService, producer service.EventProducer, now func() time.Time, newID func() string, ttl time.Duration, queueThreshold, workerPoolSize int, persistSync bool) *ReservationUsecase {
 	if workerPoolSize <= 0 {
 		workerPoolSize = 1
 	}
@@ -44,6 +45,7 @@ func NewReservationUsecase(categories repository.TicketCategoryRepository, reser
 		ttl:            ttl,
 		queueThreshold: int64(queueThreshold),
 		gate:           make(chan struct{}, workerPoolSize),
+		persistSync:    persistSync,
 	}
 }
 
@@ -96,8 +98,10 @@ func (u *ReservationUsecase) Reserve(ctx context.Context, userID, eventID, categ
 		return entity.Reservation{}, err
 	}
 
-	if err := u.reservations.Upsert(res); err != nil {
-		return entity.Reservation{}, err
+	if u.persistSync {
+		if err := u.reservations.Upsert(res); err != nil {
+			return entity.Reservation{}, err
+		}
 	}
 
 	payload, _ := json.Marshal(res)
@@ -105,6 +109,19 @@ func (u *ReservationUsecase) Reserve(ctx context.Context, userID, eventID, categ
 		return entity.Reservation{}, err
 	}
 	return res, nil
+}
+
+func (u *ReservationUsecase) StartExpiryReaper(ctx context.Context, interval time.Duration, batch int) {
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case now := <-ticker.C:
+			_ = u.ReleaseExpired(ctx, now, batch)
+		}
+	}
 }
 
 func (u *ReservationUsecase) Confirm(ctx context.Context, reservationID string, paymentOK bool) (entity.Booking, error) {

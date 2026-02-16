@@ -29,7 +29,7 @@ func TestReserveAndConfirm(t *testing.T) {
 			return "res-1"
 		}
 		return "book-1"
-	}, 5*time.Minute, 100, 10)
+	}, 5*time.Minute, 100, 10, true)
 
 	res, err := u.Reserve(context.Background(), "user-1", eventID, "vip", 2)
 	if err != nil {
@@ -59,7 +59,7 @@ func TestReserveOutOfStock(t *testing.T) {
 	_ = categories.Create(entity.TicketCategory{ID: "cat-1", EventID: eventID, Name: "REGULAR", TotalStock: 1, Price: 1000})
 	_ = stock.InitStock(context.Background(), eventID, "REGULAR", 1)
 
-	u := NewReservationUsecase(categories, reservations, bookings, stock, producer, time.Now, func() string { return "res-1" }, 5*time.Minute, 100, 10)
+	u := NewReservationUsecase(categories, reservations, bookings, stock, producer, time.Now, func() string { return "res-1" }, 5*time.Minute, 100, 10, true)
 	_, err := u.Reserve(context.Background(), "user-1", eventID, "REGULAR", 2)
 	if !errors.Is(err, service.ErrOutOfStock) {
 		t.Fatalf("expected out of stock, got %v", err)
