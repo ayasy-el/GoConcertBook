@@ -30,6 +30,16 @@ func (s *StockService) InitStock(_ context.Context, eventID, category string, to
 	return nil
 }
 
+func (s *StockService) GetStocks(_ context.Context, eventID string, categories []string) (map[string]int, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	out := make(map[string]int, len(categories))
+	for _, category := range categories {
+		out[category] = s.stocks[stockKey{eventID: eventID, category: category}]
+	}
+	return out, nil
+}
+
 func (s *StockService) Reserve(_ context.Context, meta service.ReservationMeta, ttl time.Duration) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()

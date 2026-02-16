@@ -1,0 +1,8 @@
+.git
+.github
+.cache
+.env
+.env.*
+*.log
+tmp
+coverage*

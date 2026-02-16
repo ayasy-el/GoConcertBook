@@ -3,7 +3,9 @@ package server
 import (
 	"context"
 	"crypto/rand"
+	"database/sql"
 	"encoding/hex"
+	"errors"
 	"log"
 	"net/http"
 	"time"
@@ -28,15 +30,20 @@ func NewHTTPServer(cfg config.Config) *http.Server {
 	)
 
 	if cfg.AppMode == "production" {
-		db, err := postgres.NewDB(cfg.PostgresDSN)
+		db, err := connectPostgresWithRetry(cfg.PostgresDSN, 10, 2*time.Second)
 		if err != nil {
 			log.Fatalf("postgres connect failed: %v", err)
 		}
 		cleanup = append(cleanup, func() { _ = db.Close() })
 
 		stock := redisinfra.NewStockService(cfg.RedisAddr, cfg.RedisPassword)
-		if err := stock.Ping(context.Background()); err != nil {
+		if err := waitForDependency(10, 2*time.Second, func() error { return stock.Ping(context.Background()) }); err != nil {
 			log.Fatalf("redis connect failed: %v", err)
+		}
+		if err := waitForDependency(10, 2*time.Second, func() error {
+			return kafkainfra.EnsureTopics(context.Background(), cfg.KafkaBrokers, []string{"ticket.reserved", "ticket.confirmed", "ticket.expired"}, 3, 1)
+		}); err != nil {
+			log.Fatalf("kafka topic ensure failed: %v", err)
 		}
 
 		producer := kafkainfra.NewProducer(cfg.KafkaBrokers)
@@ -101,4 +108,33 @@ func newID() string {
 		return time.Now().Format("20060102150405.000000000")
 	}
 	return hex.EncodeToString(b)
+}
+
+func connectPostgresWithRetry(dsn string, attempts int, delay time.Duration) (*sql.DB, error) {
+	var lastErr error
+	for i := 0; i < attempts; i++ {
+		db, err := postgres.NewDB(dsn)
+		if err == nil {
+			return db, nil
+		}
+		lastErr = err
+		time.Sleep(delay)
+	}
+	return nil, lastErr
+}
+
+func waitForDependency(attempts int, delay time.Duration, fn func() error) error {
+	var lastErr error
+	for i := 0; i < attempts; i++ {
+		if err := fn(); err == nil {
+			return nil
+		} else {
+			lastErr = err
+		}
+		time.Sleep(delay)
+	}
+	if lastErr == nil {
+		return errors.New("dependency unavailable")
+	}
+	return lastErr
 }

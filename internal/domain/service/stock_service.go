@@ -24,6 +24,7 @@ type ReservationMeta struct {
 
 type StockService interface {
 	InitStock(ctx context.Context, eventID, category string, total int) error
+	GetStocks(ctx context.Context, eventID string, categories []string) (map[string]int, error)
 	Reserve(ctx context.Context, meta ReservationMeta, ttl time.Duration) error
 	GetReservation(ctx context.Context, reservationID string) (ReservationMeta, error)
 	ConfirmReservation(ctx context.Context, reservationID string) error

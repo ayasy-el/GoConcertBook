@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 	"os/signal"
@@ -18,11 +20,16 @@ import (
 
 func main() {
 	cfg := config.Load()
-	db, err := postgres.NewDB(cfg.PostgresDSN)
+	db, err := connectPostgresWithRetry(cfg.PostgresDSN, 10, 2*time.Second)
 	if err != nil {
 		log.Fatalf("postgres connect failed: %v", err)
 	}
 	defer db.Close()
+	if err := waitForDependency(10, 2*time.Second, func() error {
+		return kafkainfra.EnsureTopics(context.Background(), cfg.KafkaBrokers, []string{"ticket.reserved", "ticket.confirmed", "ticket.expired"}, 3, 1)
+	}); err != nil {
+		log.Fatalf("kafka topic ensure failed: %v", err)
+	}
 
 	reservationRepo := postgres.NewReservationRepository(db)
 	consumer := kafkainfra.NewConsumer(cfg.KafkaBrokers, cfg.KafkaGroupID, "ticket.reserved")
@@ -76,4 +83,33 @@ func main() {
 		}
 		log.Printf("reservation persisted: %s", res.ID)
 	}
+}
+
+func connectPostgresWithRetry(dsn string, attempts int, delay time.Duration) (*sql.DB, error) {
+	var lastErr error
+	for i := 0; i < attempts; i++ {
+		db, err := postgres.NewDB(dsn)
+		if err == nil {
+			return db, nil
+		}
+		lastErr = err
+		time.Sleep(delay)
+	}
+	return nil, lastErr
+}
+
+func waitForDependency(attempts int, delay time.Duration, fn func() error) error {
+	var lastErr error
+	for i := 0; i < attempts; i++ {
+		if err := fn(); err == nil {
+			return nil
+		} else {
+			lastErr = err
+		}
+		time.Sleep(delay)
+	}
+	if lastErr == nil {
+		return errors.New("dependency unavailable")
+	}
+	return lastErr
 }

@@ -79,6 +79,17 @@ func (u *EventUsecase) Availability(eventID string) (map[string]int, error) {
 		return nil, err
 	}
 	out := make(map[string]int, len(categories))
+	names := make([]string, 0, len(categories))
+	for _, c := range categories {
+		names = append(names, c.Name)
+	}
+	// Prefer real-time stock from cache; fallback to configured stock from DB.
+	if stocks, err := u.stock.GetStocks(context.Background(), eventID, names); err == nil {
+		for _, c := range categories {
+			out[strings.ToLower(c.Name)] = stocks[c.Name]
+		}
+		return out, nil
+	}
 	for _, c := range categories {
 		out[strings.ToLower(c.Name)] = c.TotalStock
 	}

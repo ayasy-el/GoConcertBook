@@ -33,6 +33,36 @@ func (s *StockService) InitStock(ctx context.Context, eventID, category string, 
 	return s.client.SetNX(ctx, stockKey(eventID, category), total, 0).Err()
 }
 
+func (s *StockService) GetStocks(ctx context.Context, eventID string, categories []string) (map[string]int, error) {
+	if len(categories) == 0 {
+		return map[string]int{}, nil
+	}
+	keys := make([]string, 0, len(categories))
+	for _, category := range categories {
+		keys = append(keys, stockKey(eventID, category))
+	}
+	values, err := s.client.MGet(ctx, keys...).Result()
+	if err != nil {
+		return nil, err
+	}
+	out := make(map[string]int, len(categories))
+	for i, category := range categories {
+		switch v := values[i].(type) {
+		case string:
+			n, _ := strconv.Atoi(v)
+			out[category] = n
+		case int64:
+			out[category] = int(v)
+		case nil:
+			out[category] = 0
+		default:
+			n, _ := strconv.Atoi(fmt.Sprint(v))
+			out[category] = n
+		}
+	}
+	return out, nil
+}
+
 func (s *StockService) Reserve(ctx context.Context, meta service.ReservationMeta, ttl time.Duration) error {
 	payload, _ := json.Marshal(meta)
 	expAt := strconv.FormatInt(meta.ExpiredAt.Unix(), 10)

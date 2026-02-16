@@ -67,9 +67,6 @@ func (u *ReservationUsecase) Reserve(ctx context.Context, userID, eventID, categ
 	}
 
 	category = strings.ToUpper(strings.TrimSpace(category))
-	if _, err := u.categories.FindByEventAndName(eventID, category); err != nil {
-		return entity.Reservation{}, ErrNotFound
-	}
 
 	res := entity.Reservation{
 		ID:        u.newID(),
@@ -105,7 +102,9 @@ func (u *ReservationUsecase) Reserve(ctx context.Context, userID, eventID, categ
 	}
 
 	payload, _ := json.Marshal(res)
-	if err := u.producer.Publish(ctx, "ticket.reserved", eventID, payload); err != nil {
+	pubCtx, cancel := context.WithTimeout(context.Background(), 80*time.Millisecond)
+	defer cancel()
+	if err := u.producer.Publish(pubCtx, "ticket.reserved", eventID, payload); err != nil {
 		return entity.Reservation{}, err
 	}
 	return res, nil

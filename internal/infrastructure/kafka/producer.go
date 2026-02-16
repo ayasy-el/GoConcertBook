@@ -2,6 +2,7 @@ package kafka
 
 import (
 	"context"
+	"time"
 
 	"github.com/segmentio/kafka-go"
 )
@@ -11,7 +12,12 @@ type Producer struct {
 }
 
 func NewProducer(brokers []string) *Producer {
-	return &Producer{writer: &kafka.Writer{Addr: kafka.TCP(brokers...), RequiredAcks: kafka.RequireOne, Async: false}}
+	return &Producer{writer: &kafka.Writer{
+		Addr:         kafka.TCP(brokers...),
+		RequiredAcks: kafka.RequireOne,
+		Async:        true,
+		BatchTimeout: 5 * time.Millisecond,
+	}}
 }
 
 func (p *Producer) Publish(ctx context.Context, topic string, key string, value []byte) error {

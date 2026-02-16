@@ -26,7 +26,7 @@ func Load() Config {
 		AppMode:         envOrDefault("APP_MODE", "memory"),
 		HTTPAddr:        envOrDefault("HTTP_ADDR", ":8080"),
 		JWTSecret:       envOrDefault("JWT_SECRET", "dev-secret"),
-		RateLimitPerMin: envOrDefaultInt("RATE_LIMIT_PER_MIN", 120),
+		RateLimitPerMin: envOrDefaultInt("RATE_LIMIT_PER_MIN", 20000),
 		ReservationTTL:  envOrDefaultDuration("RESERVATION_TTL", 5*time.Minute),
 		QueueThreshold:  envOrDefaultInt("QUEUE_THRESHOLD", 1000),
 		WorkerPoolSize:  envOrDefaultInt("WORKER_POOL_SIZE", 50),
