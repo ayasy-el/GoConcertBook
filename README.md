@@ -1,4 +1,4 @@
-# Concert Booking MVP
+# Concert Booking API
 
 [![Go](https://img.shields.io/badge/Go-1.25+-00ADD8?logo=go&logoColor=white)](https://go.dev/)
 [![Architecture](https://img.shields.io/badge/Architecture-Clean-0A7EA4)](./docs/architecture.md)
